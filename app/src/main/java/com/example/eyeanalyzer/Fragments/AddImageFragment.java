@@ -1,5 +1,6 @@
 package com.example.eyeanalyzer.Fragments;
 
+import android.Manifest;
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.graphics.Bitmap;
@@ -18,7 +19,10 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.Toast;
 
+import com.example.eyeanalyzer.Activity.MainActivity;
 import com.example.eyeanalyzer.R;
+import com.theartofdev.edmodo.cropper.CropImage;
+import com.theartofdev.edmodo.cropper.CropImageView;
 
 import java.io.FileNotFoundException;
 import java.io.InputStream;
@@ -34,6 +38,7 @@ public class AddImageFragment extends Fragment implements View.OnClickListener {
     private Button loadImageBtn;
     private ImageView targetImage;
     private Button takePictureBtn;
+    private Uri uri;
 
     public AddImageFragment() {
         // Required empty public constructor
@@ -61,9 +66,7 @@ public class AddImageFragment extends Fragment implements View.OnClickListener {
         {
             case R.id.loadImageBtn:
 
-                Intent photoPickerIntent = new Intent(Intent.ACTION_PICK);
-                photoPickerIntent.setType("image/*");
-                startActivityForResult(Intent.createChooser(photoPickerIntent, "Pick an Image"), REQUEST_IMAGE);
+                CropImage.startPickImageActivity(getContext(), this);
 
                 break;
 
@@ -76,32 +79,32 @@ public class AddImageFragment extends Fragment implements View.OnClickListener {
 
     }
 
-    @Override
-    public void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-
-        if (resultCode == RESULT_OK && requestCode == REQUEST_IMAGE) {
-            try {
-                final Uri imageUri = data.getData();
-                final InputStream imageStream = getActivity().getContentResolver().openInputStream(imageUri);
-                final Bitmap selectedImage = BitmapFactory.decodeStream(imageStream);
-                targetImage.setImageBitmap(selectedImage);
-            } catch (FileNotFoundException e) {
-                e.printStackTrace();
-                Toast.makeText(getContext(), "Something went wrong", Toast.LENGTH_LONG).show();
-            }
-        }
-
-        else if (requestCode == REQUEST_IMAGE_CAPTURE && resultCode == RESULT_OK) {
-            Bundle extras = data.getExtras();
-            Bitmap imageBitmap = (Bitmap) extras.get("data");
-            targetImage.setImageBitmap(imageBitmap);
-        }
-
-        else {
-            Toast.makeText(getContext(), "You haven't picked Image",Toast.LENGTH_LONG).show();
-        }
-    }
+//    @Override
+//    public void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+//        super.onActivityResult(requestCode, resultCode, data);
+//
+//        if (resultCode == RESULT_OK && requestCode == REQUEST_IMAGE) {
+//            try {
+//                final Uri imageUri = data.getData();
+//                final InputStream imageStream = getActivity().getContentResolver().openInputStream(imageUri);
+//                final Bitmap selectedImage = BitmapFactory.decodeStream(imageStream);
+//                targetImage.setImageBitmap(selectedImage);
+//            } catch (FileNotFoundException e) {
+//                e.printStackTrace();
+//                Toast.makeText(getContext(), "Something went wrong", Toast.LENGTH_LONG).show();
+//            }
+//        }
+//
+//        else if (requestCode == REQUEST_IMAGE_CAPTURE && resultCode == RESULT_OK) {
+//            Bundle extras = data.getExtras();
+//            Bitmap imageBitmap = (Bitmap) extras.get("data");
+//            targetImage.setImageBitmap(imageBitmap);
+//        }
+//
+//        else {
+//            Toast.makeText(getContext(), "You haven't picked Image",Toast.LENGTH_LONG).show();
+//        }
+//    }
 
     private void dispatchTakePictureIntent() {
         Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
@@ -109,6 +112,52 @@ public class AddImageFragment extends Fragment implements View.OnClickListener {
             startActivityForResult(takePictureIntent, REQUEST_IMAGE_CAPTURE);
         } catch (ActivityNotFoundException e) {
             // display error state to the user
-        }}
+        }
+    }
 
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        if(requestCode == CropImage.PICK_IMAGE_CHOOSER_REQUEST_CODE && resultCode == RESULT_OK)
+        {
+            Uri imageUri = CropImage.getPickImageResultUri(getContext(), data);
+            if (CropImage.isReadExternalStoragePermissionsRequired(getContext(), imageUri))
+            {
+                uri = imageUri;
+                requestPermissions(new String[] {Manifest.permission.READ_EXTERNAL_STORAGE}, 0);
+            }
+            else
+            {
+                startCrop(imageUri);
+            }
+        }
+
+        // TODO: when taking a picture the app doesn't call the cropper
+        else if (requestCode == REQUEST_IMAGE_CAPTURE && resultCode == RESULT_OK) {
+
+            Bundle extras = data.getExtras();
+            Bitmap imageBitmap = (Bitmap) extras.get("data");
+            targetImage.setImageBitmap(imageBitmap);
+
+//            uri = data.getData();
+//            startCrop(uri);
+
+        }
+
+        if (requestCode == CropImage.CROP_IMAGE_ACTIVITY_REQUEST_CODE)
+        {
+            CropImage.ActivityResult result = CropImage.getActivityResult(data);
+            if (resultCode == RESULT_OK)
+            {
+                targetImage.setImageURI(result.getUri());
+                Toast.makeText(getContext(), "Image Update Successfull", Toast.LENGTH_SHORT).show();
+            }
+        }
+
+    }
+
+    private void startCrop(Uri imageUri) {
+        CropImage.activity(imageUri).setGuidelines(CropImageView.Guidelines.ON).setMultiTouchEnabled(true).setAspectRatio(4,4).start(getContext(), this);
+    }
 }
