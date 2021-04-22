@@ -27,13 +27,17 @@
         app:layout_constraintTop_toTopOf="parent"
         tools:src="@tools:sample/backgrounds/scenic" />
 
-    <Button
-        android:id="@+id/takePictureBtn"
+    <TextView
+        android:id="@+id/predictionTextView"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="30dp"
-        android:text="Take Picture"
+        android:text="Load a retinal image"
+        android:textSize="25dp"
+        android:textAlignment="center"
+        android:textStyle="bold"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/loadImageBtn" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>
